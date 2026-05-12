@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@theme {
+  --color-hp:      #10b981;
+  --color-hp-dim:  #022c22;
+  --color-ap:      #3b82f6;
+  --color-ap-dim:  #172554;
+  --color-san:     #a855f7;
+  --color-san-dim: #2e1065;
+
+  --color-surface:   #0f0f18;
+  --color-base:      #08080e;
+  --color-card:      #12121e;
+  --color-border:    #1e2035;
+  --color-muted:     #374151;
+  --color-text:      #e2e8f0;
+  --color-subtle:    #64748b;
+}
+
+:root {
+  --background: #08080e;
+  --foreground: #e2e8f0;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  height: 100%;
+  overscroll-behavior: none;
+}
+body {
+  min-height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Glass morphism card ── */
+.glass {
+  background: rgba(255, 255, 255, 0.038);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ── Glow effects ── */
+.glow-hp  { box-shadow: 0 0 24px rgba(16,  185, 129, 0.18), 0 0 48px rgba(16,  185, 129, 0.06); }
+.glow-ap  { box-shadow: 0 0 24px rgba(59,  130, 246, 0.18), 0 0 48px rgba(59,  130, 246, 0.06); }
+.glow-san { box-shadow: 0 0 24px rgba(168,  85, 247, 0.18), 0 0 48px rgba(168,  85, 247, 0.06); }
+
+/* ── Progress bar shimmer ── */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+.bar-shimmer {
+  background-size: 200% auto;
+  animation: shimmer 2.5s linear infinite;
+}
+
+/* ── Fade in up ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+.anim-in {
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+/* ── Pulse glow ── */
+@keyframes pulseGlow {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.65; }
+}
+
+.pulse-glow {
+  animation: pulseGlow 2.8s ease-in-out infinite;
+}
+
+/* ── SVG arc transition ── */
+circle.arc-progress {
+  transition: stroke-dashoffset 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── Plant float animation ── */
+@keyframes plantFloat {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-5px); }
+}
+.plant-float {
+  animation: plantFloat 3.5s ease-in-out infinite;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.12); border-radius: 2px; }
