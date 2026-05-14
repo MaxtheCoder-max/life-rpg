@@ -6,11 +6,11 @@ import { usePathname } from 'next/navigation'
 const NAV_ITEMS = [
   {
     href: '/',
-    label: '人物',
+    label: '今日',
     icon: (a: boolean) => (
       <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" stroke="currentColor" strokeWidth={a ? 2 : 1.5}>
         <path strokeLinecap="round" strokeLinejoin="round"
-          d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
       </svg>
     ),
   },
@@ -46,7 +46,7 @@ const NAV_ITEMS = [
   },
   {
     href: '/stats',
-    label: '今日',
+    label: '统计',
     icon: (a: boolean) => (
       <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" stroke="currentColor" strokeWidth={a ? 2 : 1.5}>
         <path strokeLinecap="round" strokeLinejoin="round"

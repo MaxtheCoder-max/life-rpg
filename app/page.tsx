@@ -1,285 +1,218 @@
 'use client'
 
-import { useState } from 'react'
 import { useStore } from '@/lib/store'
-import { useCharacterStore } from '@/lib/characterStore'
-import { CharacterSvg } from '@/components/character/CharacterSvg'
-import { SLOT_LABELS, SLOT_CATEGORIES, SLOT_COLORS, COLOR_NAMES, BACKGROUND_LABELS, SLOT_ORDER } from '@/lib/slotData'
-import type { SlotKey, BackgroundKey } from '@/types/character'
-import { getHPPhase, getAPPhase, getSANPhase } from '@/lib/tasks'
+import { STATUS_CONFIGS, formatDateKey, getWeekday } from '@/lib/status'
+import { getHPPhase, getAPPhase, getSANPhase, HP_MAX, AP_MAX, SAN_MAX, ALL_TASKS } from '@/lib/tasks'
+import { StatusOrb } from '@/components/dashboard/StatusOrb'
+import Link from 'next/link'
 
-const BG_KEYS: BackgroundKey[] = ['room', 'greenhouse', 'night', 'library', 'balcony']
+const RESOURCE_META = [
+  { key: 'HP' as const, label: '生命体征', icon: '❤️', color: '#10b981', max: HP_MAX },
+  { key: 'AP' as const, label: '行动效率', icon: '⚡', color: '#3b82f6', max: AP_MAX },
+  { key: 'SAN' as const, label: '精神状态', icon: '✦', color: '#a855f7', max: SAN_MAX },
+]
 
-export default function CharacterPage() {
+function MiniBar({ value, max, color }: { value: number; max: number; color: string }) {
+  const pct = Math.min((value / max) * 100, 100)
+  return (
+    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+      <div
+        className="h-full rounded-full"
+        style={{ width: `${pct}%`, background: color, transition: 'width 0.8s ease-out' }}
+      />
+    </div>
+  )
+}
+
+export default function TodayPage() {
   const { state } = useStore()
-  const { hp, ap, san } = state.today
-  const { outfit, savedOutfits, background, setSlot, setBackground, randomize, saveOutfit, loadOutfit, deleteOutfit } = useCharacterStore()
+  const { today, history } = state
+  const { hp, ap, san, status, completedTaskIds, date } = today
 
-  const [activeSlot, setActiveSlot] = useState<SlotKey>('hair')
-  const [tab, setTab] = useState<'outfit' | 'saved'>('outfit')
-  const [saveName, setSaveName] = useState('')
-  const [showSaveInput, setShowSaveInput] = useState(false)
-
-  const hpPhase  = getHPPhase(hp)
-  const apPhase  = getAPPhase(ap)
+  const cfg = STATUS_CONFIGS[status]
+  const hpPhase = getHPPhase(hp)
+  const apPhase = getAPPhase(ap)
   const sanPhase = getSANPhase(san)
 
-  function handleSave() {
-    if (!saveName.trim()) return
-    saveOutfit(saveName.trim())
-    setSaveName('')
-    setShowSaveInput(false)
+  const completedTasks = ALL_TASKS.filter(t => completedTaskIds.includes(t.id))
+  const completedByResource = {
+    HP:  completedTasks.filter(t => t.resource === 'HP'),
+    AP:  completedTasks.filter(t => t.resource === 'AP'),
+    SAN: completedTasks.filter(t => t.resource === 'SAN'),
   }
 
-  const cats      = SLOT_CATEGORIES[activeSlot]
-  const colors    = SLOT_COLORS[activeSlot]
-  const colorNames = COLOR_NAMES[activeSlot]
-  const sel       = outfit[activeSlot]
+  const resourceValues: Record<string, number> = { HP: hp, AP: ap, SAN: san }
+  const phases: Record<string, string> = {
+    HP:  hpPhase.label,
+    AP:  apPhase.label,
+    SAN: sanPhase.label,
+  }
 
   return (
     <div className="flex flex-col min-h-full">
       {/* ── Header ── */}
-      <header className="px-5 pt-10 pb-2 flex items-center justify-between">
-        <div>
-          <p className="text-[10px] font-medium tracking-widest uppercase mb-0.5" style={{ color: '#475569' }}>
-            CHARACTER
-          </p>
-          <h1 className="text-xl font-bold" style={{ color: '#e2e8f0' }}>人物</h1>
-        </div>
-        <div className="flex gap-1.5">
-          {[
-            { label: 'HP', val: hp, color: '#10b981' },
-            { label: 'AP', val: ap, color: '#3b82f6' },
-            { label: 'SAN', val: san, color: '#a855f7' },
-          ].map(r => (
-            <div key={r.label} className="flex flex-col items-center px-2 py-1 rounded-xl"
-              style={{ background: `${r.color}12`, border: `1px solid ${r.color}22` }}>
-              <span className="text-[9px]" style={{ color: r.color }}>{r.label}</span>
-              <span className="text-xs font-bold tabular-nums" style={{ color: r.color }}>{r.val}</span>
-            </div>
-          ))}
-        </div>
+      <header className="px-5 pt-12 pb-5">
+        <p className="text-[11px] font-medium tracking-widest uppercase mb-1" style={{ color: '#475569' }}>
+          LIFE RPG
+        </p>
+        <h1 className="text-2xl font-bold" style={{ color: '#e2e8f0' }}>今日</h1>
+        <p className="text-xs mt-1" style={{ color: '#374151' }}>
+          {formatDateKey(date)} · {getWeekday(date)}
+        </p>
       </header>
 
-      {/* ── Character Display ── */}
-      <div className="px-4 mb-2">
-        <div className="relative rounded-3xl overflow-hidden"
+      <div className="px-4 flex flex-col gap-4">
+        {/* ── Status showcase ── */}
+        <div
+          className="rounded-3xl overflow-hidden relative"
           style={{
-            height: 300,
-            background: 'rgba(255,255,255,0.015)',
-            border: '1px solid rgba(255,255,255,0.06)',
-          }}>
-          <CharacterSvg outfit={outfit} background={background}
-            hp={hp} ap={ap} san={san} animate/>
-          <div className="absolute bottom-3 left-0 right-0 flex justify-center pointer-events-none">
-            <div className="px-3 py-1 rounded-full text-[10px]"
-              style={{ background: 'rgba(0,0,0,0.55)', color: '#64748b', backdropFilter: 'blur(8px)' }}>
-              {hpPhase.label} · {apPhase.label} · {sanPhase.label}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Background selector ── */}
-      <div className="px-4 mb-2">
-        <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-          {BG_KEYS.map(bg => (
-            <button key={bg}
-              className="flex-shrink-0 text-[10px] px-3 py-1.5 rounded-xl whitespace-nowrap transition-all"
-              style={{
-                background: background === bg ? 'rgba(192,132,252,0.18)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${background === bg ? '#c084fc44' : 'rgba(255,255,255,0.06)'}`,
-                color: background === bg ? '#c084fc' : '#475569',
-              }}
-              onClick={() => setBackground(bg)}>
-              {BACKGROUND_LABELS[bg]}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Tab bar ── */}
-      <div className="px-4 mb-2 flex gap-2 items-center">
-        {(['outfit','saved'] as const).map(t => (
-          <button key={t}
-            className="text-xs px-4 py-1.5 rounded-xl transition-all"
-            style={{
-              background: tab === t ? 'rgba(192,132,252,0.15)' : 'rgba(255,255,255,0.04)',
-              color: tab === t ? '#c084fc' : '#475569',
-              border: `1px solid ${tab === t ? '#c084fc33' : 'rgba(255,255,255,0.06)'}`,
-            }}
-            onClick={() => setTab(t)}>
-            {t === 'outfit' ? '穿搭' : `已保存 ${savedOutfits.length}`}
-          </button>
-        ))}
-        <div className="flex-1"/>
-        <button
-          className="text-xs px-3 py-1.5 rounded-xl"
-          style={{ background: 'rgba(255,255,255,0.05)', color: '#64748b' }}
-          onClick={randomize}>
-          🎲 随机
-        </button>
-        <button
-          className="text-xs px-3 py-1.5 rounded-xl"
-          style={{ background: 'rgba(192,132,252,0.12)', color: '#c084fc' }}
-          onClick={() => setShowSaveInput(v => !v)}>
-          保存
-        </button>
-      </div>
-
-      {showSaveInput && (
-        <div className="px-4 mb-2 flex gap-2">
-          <input
-            className="flex-1 text-sm px-3 py-2 rounded-xl outline-none"
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: '#e2e8f0',
-            }}
-            placeholder="穿搭方案名称…"
-            value={saveName}
-            onChange={e => setSaveName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSave()}
-            autoFocus
+            background: `radial-gradient(ellipse at 50% 20%, ${cfg.dimColor}99 0%, #0d0d18 65%)`,
+            border: `1px solid ${cfg.color}25`,
+          }}
+        >
+          <div
+            className="absolute top-0 left-0 right-0 h-px"
+            style={{ background: `linear-gradient(90deg, transparent, ${cfg.color}80, transparent)` }}
           />
-          <button
-            className="text-xs px-4 py-2 rounded-xl font-medium"
-            style={{ background: 'rgba(192,132,252,0.2)', color: '#c084fc' }}
-            onClick={handleSave}>
-            确认
-          </button>
+          <div className="flex flex-col items-center py-6 px-4">
+            <div className="mb-3">
+              <StatusOrb hp={hp} ap={ap} san={san} size={160} />
+            </div>
+            <div
+              className="text-[10px] font-bold tracking-widest uppercase mb-1"
+              style={{ color: cfg.color }}
+            >
+              STATE {cfg.index.toString().padStart(2, '0')} · {cfg.emoji}
+            </div>
+            <h2 className="text-2xl font-bold mb-2" style={{ color: cfg.color }}>{cfg.name}</h2>
+            <p className="text-[13px] text-center leading-relaxed max-w-xs" style={{ color: '#64748b' }}>
+              {cfg.comment}
+            </p>
+          </div>
         </div>
-      )}
 
-      {tab === 'outfit' ? (
-        <>
-          {/* ── Slot tabs ── */}
-          <div className="px-4 mb-2">
-            <div className="flex gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-              {SLOT_ORDER.map(slot => {
-                const active = slot === activeSlot
-                const dotColor = SLOT_COLORS[slot][outfit[slot].colorIndex]
-                return (
-                  <button key={slot}
-                    className="flex-shrink-0 flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl transition-all"
-                    style={{
-                      background: active ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
-                      border: `1px solid ${active ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.05)'}`,
-                      minWidth: 48,
-                    }}
-                    onClick={() => setActiveSlot(slot)}>
-                    <div className="w-3 h-3 rounded-full"
-                      style={{
-                        background: dotColor,
-                        boxShadow: active ? `0 0 6px ${dotColor}` : 'none',
-                      }}/>
-                    <span className="text-[10px] whitespace-nowrap"
-                      style={{ color: active ? '#e2e8f0' : '#475569' }}>
-                      {SLOT_LABELS[slot]}
+        {/* ── Resource summary ── */}
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{ border: '1px solid rgba(255,255,255,0.06)' }}
+        >
+          {RESOURCE_META.map((r, i) => {
+            const val = resourceValues[r.key]
+            const phase = phases[r.key]
+            const count = completedByResource[r.key].length
+            return (
+              <div
+                key={r.key}
+                className="px-4 py-3"
+                style={{
+                  background: 'rgba(255,255,255,0.025)',
+                  borderBottom: i < 2 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{r.icon}</span>
+                    <span className="text-sm font-medium" style={{ color: '#94a3b8' }}>{r.label}</span>
+                    <span
+                      className="text-[10px] px-2 py-0.5 rounded-full"
+                      style={{ background: 'rgba(255,255,255,0.05)', color: '#475569' }}
+                    >
+                      {count} 项
                     </span>
-                  </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-bold tabular-nums" style={{ color: r.color }}>{val}</span>
+                    <span className="text-xs" style={{ color: '#374151' }}>/{r.max}</span>
+                    <span className="text-[11px]" style={{ color: '#475569' }}>{phase}</span>
+                  </div>
+                </div>
+                <MiniBar value={val} max={r.max} color={r.color} />
+              </div>
+            )
+          })}
+        </div>
+
+        {/* ── Completed task tags ── */}
+        {completedTasks.length > 0 ? (
+          <div>
+            <h3 className="text-xs font-medium mb-3 tracking-widest uppercase" style={{ color: '#374151' }}>
+              今日已完成 · {completedTasks.length} 项
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {completedTasks.map(task => {
+                const bgColors: Record<string, string> = {
+                  HP: 'rgba(16,185,129,0.1)', AP: 'rgba(59,130,246,0.1)', SAN: 'rgba(168,85,247,0.1)',
+                }
+                const txtColors: Record<string, string> = {
+                  HP: '#34d399', AP: '#60a5fa', SAN: '#c084fc',
+                }
+                return (
+                  <span
+                    key={task.id}
+                    className="text-xs px-3 py-1.5 rounded-xl"
+                    style={{ background: bgColors[task.resource], color: txtColors[task.resource] }}
+                  >
+                    {task.name} +{task.value}
+                  </span>
                 )
               })}
             </div>
           </div>
-
-          {/* ── Category grid (3 cols × 4 rows) ── */}
-          <div className="px-4 mb-2">
-            <div className="grid grid-cols-3 gap-1.5">
-              {cats.map((name, i) => {
-                const isSelected = sel.categoryIndex === i
-                return (
-                  <button key={i}
-                    className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-left transition-all active:scale-[0.97]"
-                    style={{
-                      background: isSelected ? 'rgba(255,255,255,0.09)' : 'rgba(255,255,255,0.03)',
-                      border: `1px solid ${isSelected ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)'}`,
-                    }}
-                    onClick={() => setSlot(activeSlot, { categoryIndex: i, colorIndex: sel.colorIndex })}>
-                    {isSelected && (
-                      <div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                        style={{ background: SLOT_COLORS[activeSlot][sel.colorIndex] }}/>
-                    )}
-                    <span className="text-[10px] leading-tight"
-                      style={{ color: isSelected ? '#e2e8f0' : '#64748b' }}>
-                      {name}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
+        ) : (
+          <div
+            className="rounded-2xl px-4 py-6 text-center"
+            style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}
+          >
+            <p className="text-2xl mb-2">☁️</p>
+            <p className="text-sm" style={{ color: '#374151' }}>今天还没有记录任何行为</p>
+            <Link href="/tasks" className="text-xs mt-1 block" style={{ color: '#c084fc' }}>
+              去任务页随手打个卡 →
+            </Link>
           </div>
+        )}
 
-          {/* ── Color picker ── */}
-          <div className="px-4 mb-3">
-            <p className="text-[10px] mb-2 tracking-widest uppercase" style={{ color: '#374151' }}>配色</p>
-            <div className="flex gap-3">
-              {colors.map((hex, i) => {
-                const isSelected = sel.colorIndex === i
-                return (
-                  <button key={i}
-                    className="flex flex-col items-center gap-1 transition-all active:scale-95"
-                    onClick={() => setSlot(activeSlot, { categoryIndex: sel.categoryIndex, colorIndex: i })}>
-                    <div className="rounded-full transition-all"
-                      style={{
-                        width: 30, height: 30,
-                        background: hex,
-                        boxShadow: isSelected ? `0 0 0 2.5px rgba(255,255,255,0.4), 0 0 12px ${hex}88` : 'none',
-                        border: isSelected ? '2px solid rgba(255,255,255,0.5)' : '2px solid transparent',
-                      }}/>
-                    <span className="text-[9px]" style={{ color: isSelected ? '#e2e8f0' : '#374151' }}>
-                      {colorNames[i]}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="px-4">
-          {savedOutfits.length === 0 ? (
-            <div className="rounded-2xl px-4 py-8 text-center"
-              style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)' }}>
-              <p className="text-2xl mb-2">👗</p>
-              <p className="text-sm" style={{ color: '#374151' }}>还没有保存的穿搭</p>
-              <p className="text-xs mt-1" style={{ color: '#1e293b' }}>搭配好后点"保存"记录</p>
-            </div>
-          ) : (
+        {/* ── History ── */}
+        {history.length > 0 && (
+          <div>
+            <h3 className="text-xs font-medium mb-3 tracking-widest uppercase" style={{ color: '#374151' }}>
+              近期记录
+            </h3>
             <div className="flex flex-col gap-2">
-              {savedOutfits.map(s => (
-                <div key={s.id}
-                  className="flex items-center justify-between rounded-xl px-3 py-3"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                  <div>
-                    <p className="text-sm font-medium" style={{ color: '#e2e8f0' }}>{s.name}</p>
-                    <div className="flex gap-1 mt-1">
-                      {SLOT_ORDER.slice(0, 6).map(slot => (
-                        <div key={slot} className="w-2.5 h-2.5 rounded-full"
-                          style={{ background: SLOT_COLORS[slot][s.outfit[slot].colorIndex] }}/>
+              {history.slice(0, 5).map(rec => {
+                const hcfg = STATUS_CONFIGS[rec.status]
+                return (
+                  <div
+                    key={rec.date}
+                    className="rounded-xl px-4 py-3 flex items-center justify-between"
+                    style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.05)' }}
+                  >
+                    <div>
+                      <span className="text-xs font-medium" style={{ color: '#64748b' }}>
+                        {formatDateKey(rec.date)}
+                      </span>
+                      <div className="text-sm font-medium mt-0.5" style={{ color: hcfg.color }}>
+                        {hcfg.emoji} {hcfg.name}
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      {[
+                        { v: rec.hp,  c: '#10b981', l: 'HP'  },
+                        { v: rec.ap,  c: '#3b82f6', l: 'AP'  },
+                        { v: rec.san, c: '#a855f7', l: 'SAN' },
+                      ].map(x => (
+                        <div key={x.l} className="flex flex-col items-center">
+                          <span className="text-[10px]" style={{ color: '#374151' }}>{x.l}</span>
+                          <span className="text-sm font-bold tabular-nums" style={{ color: x.c }}>{x.v}</span>
+                        </div>
                       ))}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      className="text-xs px-3 py-1.5 rounded-xl"
-                      style={{ background: 'rgba(192,132,252,0.15)', color: '#c084fc' }}
-                      onClick={() => { loadOutfit(s.id); setTab('outfit') }}>
-                      穿上
-                    </button>
-                    <button
-                      className="text-xs px-2 py-1.5 rounded-xl"
-                      style={{ background: 'rgba(255,255,255,0.04)', color: '#374151' }}
-                      onClick={() => deleteOutfit(s.id)}>
-                      删
-                    </button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
