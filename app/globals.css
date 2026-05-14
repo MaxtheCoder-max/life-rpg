@@ -109,6 +109,47 @@ circle.arc-progress {
   animation: plantFloat 3.5s ease-in-out infinite;
 }
 
+/* ── Character animations ── */
+@keyframes charFloat {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-7px); }
+}
+.char-float { animation: charFloat 4.5s ease-in-out infinite; }
+
+@keyframes hairSway {
+  0%, 100% { transform: rotate(0deg); }
+  25%       { transform: rotate(1.1deg); }
+  75%       { transform: rotate(-0.7deg); }
+}
+.hair-sway {
+  transform-origin: 100px 55px;
+  animation: hairSway 5.5s ease-in-out infinite;
+}
+.hair-sway-long {
+  transform-origin: 100px 55px;
+  animation: hairSway 6s ease-in-out infinite;
+}
+
+@keyframes breatheBody {
+  0%, 100% { transform: scaleY(1) scaleX(1); }
+  50%       { transform: scaleY(1.012) scaleX(0.998); }
+}
+.char-breathe {
+  transform-origin: 100px 150px;
+  animation: breatheBody 4.5s ease-in-out infinite;
+}
+
+@keyframes particleDrift {
+  0%   { transform: translateY(0px) translateX(0px); opacity: 0; }
+  15%  { opacity: 0.85; }
+  85%  { opacity: 0.3; }
+  100% { transform: translateY(-75px) translateX(var(--drift-x, 8px)); opacity: 0; }
+}
+.particle {
+  animation: particleDrift var(--dur, 3s) ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
 /* ── Scrollbar ── */
 ::-webkit-scrollbar        { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track  { background: transparent; }
